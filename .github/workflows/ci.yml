@@ -43,34 +43,10 @@ jobs:
       - name: Build
         run: |
           rustup target add wasm32-unknown-unknown
-          cargo build --target wasm32-unknown-unknown
-
-  build_single_feature:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        feature:
-          - services-google
-          - services-huaweicloud
-          - services-oracle
-          - services-tencent
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build
-        run: cargo build --no-default-features --features ${{ matrix.feature }}
-
-  build_all_features:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build
-        run: cargo build --all-features
+          cargo build --workspace \
+            --target wasm32-unknown-unknown \
+            --exclude reqsign-file-read-tokio \
+            --exclude reqsign-http-send-reqwest
 
   unit:
     runs-on: ubuntu-latest
@@ -79,75 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test
-        working-directory: ./crates/reqsign
-        run: cargo test --no-fail-fast --features=services-all
+        run: cargo test --no-fail-fast
         env:
           RUST_LOG: DEBUG
           RUST_BACKTRACE: full
-          # Google Cloud Storage Test
-          REQSIGN_GOOGLE_TEST: ${{ secrets.REQSIGN_GOOGLE_TEST }}
-          REQSIGN_GOOGLE_CREDENTIAL: ${{ secrets.REQSIGN_GOOGLE_CREDENTIAL }}
-          REQSIGN_GOOGLE_CLOUD_STORAGE_SCOPE: ${{ secrets.REQSIGN_GOOGLE_CLOUD_STORAGE_SCOPE }}
-          REQSIGN_GOOGLE_CLOUD_STORAGE_URL: ${{ secrets.REQSIGN_GOOGLE_CLOUD_STORAGE_URL }}
-          # Tencent COS Test
-          REQSIGN_TENCENT_COS_TEST: ${{ secrets.REQSIGN_TENCENT_COS_TEST }}
-          REQSIGN_TENCENT_COS_ACCESS_KEY: ${{ secrets.REQSIGN_TENCENT_COS_ACCESS_KEY }}
-          REQSIGN_TENCENT_COS_SECRET_KEY: ${{ secrets.REQSIGN_TENCENT_COS_SECRET_KEY }}
-          REQSIGN_TENCENT_COS_URL: ${{ secrets.REQSIGN_TENCENT_COS_URL }}
-
-  test_gcs_web_identify:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: "read"
-      id-token: "write"
-    if: github.event_name == 'push' || !github.event.pull_request.head.repo.fork
-    steps:
-      - uses: actions/checkout@v4
-
-      - id: auth
-        uses: google-github-actions/auth@v2.1.5
-        with:
-          token_format: "access_token"
-          create_credentials_file: true
-          workload_identity_provider: ${{ secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER_ID }}
-          service_account: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
-
-      - name: Test
-        working-directory: ./crates/reqsign
-        run: cargo test --no-fail-fast --features=services-all
-        env:
-          RUST_LOG: DEBUG
-          RUST_BACKTRACE: full
-          REQSIGN_GOOGLE_CREDENTIAL_PATH: ${{steps.auth.outputs.credentials_file_path}}
-
-  test_tencent_cloud_web_identify:
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: "read"
-      id-token: "write"
-    if: github.event_name == 'push' || !github.event.pull_request.head.repo.fork
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Get Id Token
-        uses: actions/github-script@v7
-        id: idtoken
-        with:
-          script: |
-            let id_token = await core.getIDToken('sts.tencentcloudapi.com')
-            core.exportVariable('GITHUB_ID_TOKEN', id_token)
-            core.setSecret(id_token)
-
-      - name: Test
-        working-directory: ./crates/reqsign
-        run: cargo test --no-fail-fast --features=services-all
-        env:
-          RUST_LOG: DEBUG
-          RUST_BACKTRACE: full
-          REQSIGN_TENCENT_COS_TEST: ${{ secrets.REQSIGN_TENCENT_COS_TEST }}
-          REQSIGN_TENCENT_COS_ACCESS_KEY: ${{ secrets.REQSIGN_TENCENT_COS_ACCESS_KEY }}
-          REQSIGN_TENCENT_COS_SECRET_KEY: ${{ secrets.REQSIGN_TENCENT_COS_SECRET_KEY }}
-          REQSIGN_TENCENT_COS_URL: ${{ secrets.REQSIGN_TENCENT_COS_URL }}
-          REQSIGN_TENCENT_COS_ROLE_ARN: ${{ secrets.REQSIGN_TENCENT_COS_ROLE_ARN }}
-          REQSIGN_TENCENT_COS_PROVIDER_ID: ${{ secrets.REQSIGN_TENCENT_COS_PROVIDER_ID }}
-          REQSIGN_TENCENT_COS_REGION: ${{ secrets.REQSIGN_TENCENT_COS_REGION }}

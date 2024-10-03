@@ -1,0 +1,31 @@
+[package]
+name = "reqsign-tencent-cos"
+version = "0.1.0"
+
+categories.workspace = true
+description.workspace = true
+documentation.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+http.workspace = true
+log.workspace = true
+percent-encoding.workspace = true
+reqsign-core.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+
+[dev-dependencies]
+dotenv.workspace = true
+env_logger.workspace = true
+once_cell.workspace = true
+reqwest = { workspace = true, features = ["rustls-tls"] }
+temp-env.workspace = true
+tokio = { workspace = true, features = ["full"] }
